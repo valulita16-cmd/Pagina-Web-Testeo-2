@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, LogOut, Search, ChevronLeft, Clock, Flame, ChefHat, Home, Book, Heart, User, Menu, SlidersHorizontal, Camera, Lightbulb, Activity } from 'lucide-react';
+import { Mail, Lock, LogOut, Search, ChevronLeft, ChevronRight, Clock, Flame, ChefHat, Home, Book, Heart, User, Menu, SlidersHorizontal, Camera, Lightbulb, Activity } from 'lucide-react';
 import { auth, db } from './firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -30,12 +30,23 @@ export default function App() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [lastViewedRecipeId, setLastViewedRecipeId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('lastViewedRecipeId');
+    return saved || null;
+  });
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [language, setLanguage] = useState('Español');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const tabs = ['home', 'recipes', 'favorites', 'profile'] as const;
   type Tab = typeof tabs[number];
+
+  useEffect(() => {
+    if (selectedRecipe) {
+      setLastViewedRecipeId(String(selectedRecipe.id));
+      localStorage.setItem('lastViewedRecipeId', String(selectedRecipe.id));
+    }
+  }, [selectedRecipe]);
 
   const handleTabChange = (tab: Tab) => {
     if (tab !== currentTab) {
@@ -196,6 +207,8 @@ export default function App() {
     // Fallback if category not found
     return "https://images.unsplash.com/photo-1493770348161-369560ae357d?w=800&q=80";
   };
+
+  const lastViewedRecipe = lastViewedRecipeId ? recipes.find(r => String(r.id) === lastViewedRecipeId) : null;
 
   if (loading) {
     return (
@@ -545,6 +558,40 @@ export default function App() {
                       </motion.button>
                     </div>
                   </div>
+
+                  {/* Continue Reading Section */}
+                  {lastViewedRecipe && !searchQuery && (
+                    <div className="px-4 pt-6 bg-stone-50">
+                      <h2 className="text-xl font-bold text-amber-900 mb-4">Retoma por donde te quedaste</h2>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          playTapSound();
+                          setSelectedRecipe(lastViewedRecipe);
+                        }}
+                        className="bg-white rounded-2xl p-4 shadow-sm border border-amber-100 flex items-center cursor-pointer"
+                      >
+                        <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 mr-4">
+                          <img
+                            src={getRecipeImage(lastViewedRecipe)}
+                            alt={lastViewedRecipe.title}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">{lastViewedRecipe.category}</span>
+                          <h3 className="text-md font-bold text-stone-800 line-clamp-2 mt-1">{lastViewedRecipe.title}</h3>
+                          <div className="flex items-center text-stone-500 text-xs mt-2">
+                            <Clock className="w-3 h-3 mr-1" />
+                            <span>{lastViewedRecipe.time || '30 min'}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-amber-300" />
+                      </motion.div>
+                    </div>
+                  )}
 
                   {/* Categories Carousels */}
                   <div className="py-6 space-y-8 bg-stone-50">
